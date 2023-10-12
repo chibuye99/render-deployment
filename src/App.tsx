@@ -1,44 +1,89 @@
-import {useState} from 'react'
+import Note from './components/notes'
+import {useState,useEffect} from 'react'
+import noteService from './services/notes'
 
-const App = ()=>{
-  const [good,setGood] = useState(0)
-  const [neutral,setNeutral] = useState(0)
-  const [bad,setBad]  = useState(0)
-  const [all,setAll] = useState(0)
-  const [average,setAverage] = useState(0)
-  const [postive,setPercentage] = useState(0)
+const App = () => {
+
+  const [notes,setNotes] = useState([])
+  const [newNote, setNewNote] = useState('') 
+  const [showAll, setShowAll] = useState(true)
+
+  useEffect(() => {
+    noteService
+      .getAll()
+      .then(response => {
+        setNotes(response.data)
+      })
+  }, [])
+
+        
+  console.log('render', notes.length, 'notes')
+
+
+  const addNote = (event) => {
+    event.preventDefault()
+    const noteObject = {
+      content: newNote,
+      important: Math.random() > 0.5
+    }
+
+    noteService
+    .create(noteObject)
+    .then(response => {
+      setNotes(notes.concat(response.data))
+      setNewNote('')
+    })
+  }
+
+      
+    const handleNoteChange = (event) => {
+      console.log(event.target.value)
+      setNewNote(event.target.value)
+    }
   
-const handleClickGood = () =>{
-  setGood(good+1)
-  setAll(good+neutral+bad)
-  setAverage((good+neutral+bad)/3)
-  setPercentage((good/all)*100)
-} 
-const handleClickNeutral = () =>{ 
-setNeutral(neutral+1)
-setAll(good+neutral+bad)
-setAverage((good+neutral+bad)/3)
-}
-const handleClickBad = () =>{
-   setBad(bad+1)
-   setAll(good+neutral+bad)
-   setAverage((good+neutral+bad)/3)
-}
+    const notesToShow = showAll
+    ? notes
+    : notes.filter(note => note.important)
 
-return(
-  <div>
-    <h1>Give Feedback</h1>
-    <button onClick={handleClickGood}>good</button>
-    <button onClick={handleClickNeutral}>neutral</button>
-    <button onClick={handleClickBad}>bad</button>
-    <h1>Statistics</h1>
-    <p>good: {good}</p>
-    <p>neutral: {neutral}</p>
-    <p>bad: {bad}</p>
-    <p>All:{all} </p>
-    <p>Average: {average} </p>
-    <p>Postive {postive} </p>
-  </div>
-)
+    const toggleImportanceOf = id => {
+      const note = notes.find(n => n.id === id)
+      const changedNote = { ...note, important: !note.important }
+  
+      noteService
+      .update(id, changedNote)
+      .then(response => {
+        setNotes(notes.map(note => note.id !== id ? note : response.data))
+      })
+    }
+  
+  return (
+    <div>
+      <h1>Notes</h1>
+      <div>
+        <button onClick={() => setShowAll(!showAll)}>
+          show {showAll ? 'important' : 'all' }
+        </button>
+      </div>
+      <ul>
+        {notes.map(note => 
+          <Note key={note.id} note={note} />
+        )}
+      </ul>
+      <ul>
+      {notesToShow.map(note => 
+          <Note
+            key={note.id}
+            note={note} 
+            toggleImportance={() => toggleImportanceOf(note.id)}
+          />
+        )}
+      </ul>
+      <form onSubmit={addNote}>
+        <input value={newNote} 
+         onChange={handleNoteChange} />
+        <button type="submit">submit</button>
+      </form>   
+    </div>
+  )
 }
 export default App
