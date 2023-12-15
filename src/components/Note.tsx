@@ -9,5 +9,4 @@ const Note = ({ note, toggleImportance }) => {
     </li>
   )
 }
-
 export default Note
